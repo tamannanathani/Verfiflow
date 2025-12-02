@@ -31,3 +31,11 @@ veriflow-backend/
 .env - for database API and JWT secret key
 
 index.js - final end point for routes
+
+clone the github repo - https://github.com/akshat16206/Verfiflow
+
+run - 
+```
+npm install
+```
+
