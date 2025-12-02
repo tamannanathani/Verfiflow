@@ -1,0 +1,16 @@
+step 1:
+
+run
+
+```
+npm install
+`
+
+
+structure:
+
+```
+screen/
+|-LoginScreen.jsx  //this is login screen 
+
+```
