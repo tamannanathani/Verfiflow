@@ -1,6 +1,5 @@
-// app/index.tsx
-import LoginScreen from '../screen/LoginScreen'; // adjust path
+import AppNavigator from "../App";
 
 export default function Index() {
-  return <LoginScreen />;
+  return <AppNavigator />;
 }

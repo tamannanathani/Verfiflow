@@ -1,22 +1,45 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import authService from '../services/authService';
+
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const [error, setError] = useState(null);
+
+  const handleLogin = async () => {
+    setError(null);
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill all fields');
+      setError('Please fill all fields');
       return;
     }
+
     setLoading(true);
-    // Mock authentication for simplicity
-    setTimeout(() => {
+    try {
+      const resp = await authService.login(email, password);
+      // resp expected shape: { user, token }
+      const { token, user } = resp;
+      if (!token) throw new Error('No token returned from server');
+
+      // save jwt for later authenticated requests
+      await AsyncStorage.setItem('token', token);
+
+      // Keep this simple — return/log user or navigate on success
+      console.log('Login success:', user);
+      Alert.alert('Success', `Welcome ${user?.name ?? user?.email ?? ''}`);
+      return user;
+    } catch (err) {
+      console.error('Login error', err?.response?.data ?? err.message ?? err);
+      const msg = err?.response?.data?.message ?? err.message ?? 'Login failed';
+      setError(msg);
+      Alert.alert('Login failed', msg);
+    } finally {
       setLoading(false);
-      Alert.alert('Success', 'Logged in!');
-    }, 1000);
+    }
   };
 
   return (

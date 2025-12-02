@@ -38,4 +38,4 @@ run -
 ```
 npm install
 ```
-
+created user model and wrote api endpoints for login signup with authorization and password hashing

@@ -12,5 +12,16 @@ structure:
 ```
 screen/
 |-LoginScreen.jsx  //this is login screen 
+|-RegisterScreen.jsx //this is RegisterScreen
 
 ```
+services/
+|-authService //this is for connecting frontend with backend
+
+```
+
+npm install axios
+npx expo install @react-native-async-storage/async-storage//  //run these in frontend 
+
+```
+imported AppNavigator in app/index.jsx instead of deleting the app folder
