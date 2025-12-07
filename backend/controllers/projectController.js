@@ -1,13 +1,16 @@
 const Project = require('../models/Project');
+const sharp = require("sharp");
+const path = require('path');
 
-// Create a new project
+// ======================================================
+// CREATE PROJECT
+// ======================================================
 exports.createProject = async (req, res) => {
   try {
     const { title, description, location, areaHectares, projectType, startDate, endDate, metadata } = req.body;
 
     if (!title) return res.status(400).json({ message: 'title is required' });
 
-    // use authenticated user as owner if present
     const owner = req.user?.id || req.body.owner;
     if (!owner) return res.status(400).json({ message: 'owner is required' });
 
@@ -25,68 +28,141 @@ exports.createProject = async (req, res) => {
 
     await project.save();
     return res.status(201).json({ project });
+
   } catch (err) {
     console.error('createProject error', err);
     return res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Get list of projects with optional filters
+// ======================================================
+// GET PROJECT LIST
+// ======================================================
 exports.getProjects = async (req, res) => {
   try {
     const filter = {};
     if (req.query.owner) filter.owner = req.query.owner;
     if (req.query.status) filter.status = req.query.status;
 
-    const projects = await Project.find(filter).populate('owner', 'name email role').sort({ createdAt: -1 });
+    const projects = await Project.find(filter)
+      .populate('owner', 'name email role')
+      .sort({ createdAt: -1 });
+
     return res.json({ count: projects.length, projects });
+
   } catch (err) {
     console.error('getProjects error', err);
     return res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Get a single project by id
+// ======================================================
+// GET SINGLE PROJECT
+// ======================================================
 exports.getProjectById = async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id).populate('owner', 'name email role');
+    const project = await Project.findById(req.params.id)
+      .populate('owner', 'name email role');
+
     if (!project) return res.status(404).json({ message: 'Project not found' });
+
     return res.json({ project });
+
   } catch (err) {
     console.error('getProjectById error', err);
     return res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Update project (owner or admin)
-exports.updateProject = async (req, res) => {
+// ======================================================
+// UPLOAD PROJECT IMAGE  (FINAL & CLEANED VERSION)
+// ======================================================
+exports.uploadProjectImage = async (req, res) => {
+  try {
+    const projectId = req.params.id;
+    const project = await Project.findById(projectId);
+
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    // Authorization
+    if (req.user && req.user.role !== "admin" && project.owner.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    if (!req.file) return res.status(400).json({ message: "No image uploaded" });
+
+    const { latitude, longitude, timestamp, description } = req.body;
+
+    // Paths
+    const uploadsDir = path.join(__dirname, "..", "uploads");
+    const thumbnailName = `thumb-${req.file.filename}`;
+    const thumbnailPath = path.join(uploadsDir, thumbnailName);
+
+    // Create thumbnail
+    await sharp(req.file.path)
+      .resize(300)
+      .jpeg({ quality: 70 })
+      .toFile(thumbnailPath);
+
+    // Read image dimensions
+    const metadata = await sharp(req.file.path).metadata();
+
+    const imageData = {
+      filename: req.file.filename,
+      url: `/uploads/${req.file.filename}`,
+      thumbnailUrl: `/uploads/${thumbnailName}`,
+      mimeType: req.file.mimetype,
+      sizeBytes: req.file.size,
+      width: metadata.width,
+      height: metadata.height,
+      latitude: latitude ? Number(latitude) : null,
+      longitude: longitude ? Number(longitude) : null,
+      capturedAt: timestamp ? new Date(timestamp) : null,
+      uploadedAt: new Date(),
+      description: description || null,
+    };
+
+    project.images.push(imageData);
+    await project.save();
+
+    return res.json({
+      message: "Image uploaded successfully",
+      image: imageData,
+    });
+
+  } catch (err) {
+    console.error("uploadProjectImage error", err);
+    return res.status(500).json({ message: "Error uploading image", error: err.message });
+  }
+};
+
+// ======================================================
+// DELETE PROJECT
+// ======================================================
+exports.deleteProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
-    const requester = req.user; // may be undefined for unauthenticated
-    if (requester && requester.role !== 'admin' && project.owner.toString() !== requester.id) {
+    if (req.user && req.user.role !== 'admin' && project.owner.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    // apply allowed updates
-    const allowed = ['title', 'description', 'location', 'areaHectares', 'projectType', 'startDate', 'endDate', 'status', 'metadata', 'images', 'documents'];
-    allowed.forEach((key) => {
-      if (req.body[key] !== undefined) project[key] = req.body[key];
-    });
+    await project.deleteOne();
+    return res.json({ message: 'Project deleted' });
 
-    await project.save();
-    return res.json({ project });
   } catch (err) {
-    console.error('updateProject error', err);
+    console.error('deleteProject error', err);
     return res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Delete project (owner or admin)
-exports.deleteProject = async (req, res) => {
+// Upload image and attach to project.images
+exports.uploadImage = async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id);
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    const projectId = req.params.id;
+    const project = await Project.findById(projectId);
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
     const requester = req.user;
@@ -94,10 +170,31 @@ exports.deleteProject = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    await project.deleteOne();
-    return res.json({ message: 'Project deleted' });
+    // build image metadata
+    const file = req.file;
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const url = `${protocol}://${host}/uploads/${file.filename}`;
+
+    const imageMeta = {
+      filename: file.originalname,
+      url,
+      thumbnailUrl: null,
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+      width: null,
+      height: null,
+      uploadedAt: new Date(),
+      description: req.body.description || '',
+    };
+
+    project.images = project.images || [];
+    project.images.push(imageMeta);
+    await project.save();
+
+    return res.status(201).json({ image: imageMeta });
   } catch (err) {
-    console.error('deleteProject error', err);
+    console.error('uploadImage error', err);
     return res.status(500).json({ message: 'Server error' });
   }
 };

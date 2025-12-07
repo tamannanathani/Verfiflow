@@ -1,36 +1,56 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import authService from '../services/authService';
+import Checkbox from "expo-checkbox";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState(null);
+
+  // SAMPLE ADMIN CREDENTIALS
+  const ADMIN_EMAIL = "admin@veriflow.com";
+  const ADMIN_PASSWORD = "admin123";
 
   const handleLogin = async () => {
     setError(null);
 
     if (!email || !password) {
       setError("Please fill all fields");
+      Alert.alert("Error", "Please fill all fields");
       return;
     }
 
+    // -------------------- ADMIN LOGIN --------------------
+    if (isAdmin) {
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        await AsyncStorage.setItem("role", "admin");
+        Alert.alert("Admin Login", "Welcome Admin!");
+        navigation.replace("AdminDashboard");
+        return;
+      } else {
+        Alert.alert("Invalid Admin Credentials", "Try again.");
+        return;
+      }
+    }
+
+    // ------------------ NORMAL USER LOGIN ------------------
     setLoading(true);
 
     try {
       const resp = await authService.login(email, password);
-
       const { token, user } = resp;
-  
 
       if (!token) throw new Error("No token from backend");
       if (!user?.role) throw new Error("User has no role");
 
-      // Save token + role
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("role", user.role);
+      await AsyncStorage.setItem("user", JSON.stringify(user)); // <-- CRITICAL
 
       Alert.alert("Success", `Welcome ${user.email}`);
 
@@ -53,59 +73,138 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Blue Carbon Registry</Text>
-      <Text style={styles.subtitle}>Field Data Collection</Text>
+    <LinearGradient
+      colors={['#4A90E2', '#7B68EE']}
+      style={styles.gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          
+          <View style={styles.header}>
+            <Text style={styles.title}>Blue Carbon Registry</Text>
+            <Text style={styles.subtitle}>Field Data Collection</Text>
+          </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#999"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#999"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
 
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>{loading ? "Loading..." : "Login"}</Text>
-      </TouchableOpacity>
+            {/* ----------- ADMIN CHECKBOX ----------- */}
+            <View style={styles.checkboxContainer}>
+              <Checkbox value={isAdmin} onValueChange={setIsAdmin} />
+              <Text style={styles.checkboxLabel}>I am Admin</Text>
+            </View>
 
-      <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-        <Text style={styles.link}>Don't have an account? Register</Text>
-      </TouchableOpacity>
-    </View>
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? "Loading..." : "Login"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+              <Text style={styles.link}>Don't have an account? Register</Text>
+            </TouchableOpacity>
+          </View>
+
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#f5f5f5" },
-  title: { fontSize: 28, fontWeight: "bold", textAlign: "center", marginBottom: 8, color: "#1e40af" },
-  subtitle: { fontSize: 15, textAlign: "center", marginBottom: 25, color: "#64748b" },
-  input: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 7,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    fontSize: 15,
+  gradient: { flex: 1 },
+  container: { flex: 1 },
+  content: { flex: 1, justifyContent: 'center', paddingHorizontal: 20 },
+  header: { alignItems: 'center', marginBottom: 40 },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  button: { backgroundColor: "#1e40af", padding: 14, borderRadius: 7, alignItems: "center", marginTop: 6 },
-  buttonDisabled: { backgroundColor: "#94a3b8" },
-  buttonText: { color: "#fff", fontSize: 17, fontWeight: "600" },
-  link: { textAlign: "center", marginTop: 14, color: "#1e40af", fontSize: 15 },
+  subtitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    textAlign: 'center',
+  },
+  form: { width: '100%' },
+
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 14,
+    elevation: 5,
+  },
+
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+    marginLeft: 4,
+  },
+
+  checkboxLabel: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: "#fff",
+  },
+
+  button: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 6,
+    elevation: 8,
+  },
+
+  buttonDisabled: { opacity: 0.6 },
+
+  buttonText: {
+    color: '#5A7FE2',
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+
+  link: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '500',
+  },
 });
 
 export default LoginScreen;
+

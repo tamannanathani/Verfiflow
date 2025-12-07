@@ -21,19 +21,34 @@ const LocationSchema = new mongoose.Schema(
 );
 
 const ImageSchema = new mongoose.Schema(
-	{
-		filename: { type: String },
-		url: { type: String },
-		thumbnailUrl: { type: String },
-		mimeType: { type: String },
-		sizeBytes: { type: Number },
-		width: { type: Number },
-		height: { type: Number },
-		uploadedAt: { type: Date, default: Date.now },
-		description: { type: String },
-	},
-	{ _id: false }
+  {
+    _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+
+    filename: { type: String },
+    url: { type: String },
+    thumbnailUrl: { type: String },
+
+    mimeType: { type: String },
+    sizeBytes: { type: Number },
+
+    width: { type: Number },
+    height: { type: Number },
+
+    // GeoTag
+    latitude: { type: Number },
+    longitude: { type: Number },
+
+    // Capture timestamp (from mobile)
+    capturedAt: { type: Date },
+
+    // Upload timestamp (server)
+    uploadedAt: { type: Date, default: Date.now },
+
+    description: { type: String }
+  },
+  { _id: false }
 );
+
 
 const ProjectSchema = new mongoose.Schema(
 	{

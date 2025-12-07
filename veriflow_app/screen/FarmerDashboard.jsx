@@ -1,116 +1,166 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 export default function FarmerDashboard({ navigation }) {
+
+  const goToMyPlots = async () => {
+  try {
+    const token = await AsyncStorage.getItem("token");
+    navigation.navigate("MyPlots", { token });
+  } catch (err) {
+    console.error("Failed to get token", err);
+    alert("Unable to open plots. Please try again.");
+  }
+};
+  
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>Farmer Dashboard</Text>
-      <Text style={styles.subHeader}>Blue Carbon MRV • Field Operator</Text>
-
-      {/* SECTION: Quick Actions */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate("AddPlot")}
+    <LinearGradient
+      colors={['#4A90E2', '#7B68EE']}
+      style={styles.gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <SafeAreaView style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.cardTitle}> Add New Plot</Text>
-          <Text style={styles.cardDesc}>Create a new mangrove plot entry.</Text>
-        </TouchableOpacity>
+          <View style={styles.header}>
+            <Text style={styles.title}>Farmer Dashboard</Text>
+            <Text style={styles.subtitle}>Blue Carbon MRV • Field Operator</Text>
+          </View>
 
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate("RecordData")}
-        >
-          <Text style={styles.cardTitle}>Record Field Data</Text>
-          <Text style={styles.cardDesc}>
-            Add tree measurements, biomass, soil samples etc.
-          </Text>
-        </TouchableOpacity>
+          {/* SECTION: Quick Actions */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate("UploadGeoTag")}
-        >
-          <Text style={styles.cardTitle}>Upload Geo-Tagged Photos</Text>
-          <Text style={styles.cardDesc}>
-            Capture images with GPS for verification.
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => navigation.navigate("PlotRegistration")}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.cardTitle}>Add New Plot</Text>
+              <Text style={styles.cardDesc}>Create a new mangrove plot entry.</Text>
+            </TouchableOpacity>
 
-      {/* SECTION: Reports */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Reports & History</Text>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => navigation.navigate("RecordFieldData")}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.cardTitle}>Record Field Data</Text>
+              <Text style={styles.cardDesc}>
+                Add tree measurements, biomass, soil samples etc.
+              </Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate("MyPlots")}
-        >
-          <Text style={styles.cardTitle}>My Plots</Text>
-          <Text style={styles.cardDesc}>View all registered plots.</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => navigation.navigate("GeoCapture")}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.cardTitle}>Upload Geo-Tagged Photos</Text>
+              <Text style={styles.cardDesc}>
+                Capture images with GPS for verification.
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate("Activity")}
-        >
-          <Text style={styles.cardTitle}>Activity History</Text>
-          <Text style={styles.cardDesc}>
-            All submissions, updates, and verifications.
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          {/* SECTION: Reports */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Reports & History</Text>
+
+            <TouchableOpacity
+             style={styles.card}
+             onPress={goToMyPlots}   // just pass the function reference
+             activeOpacity={0.8}>
+              <Text style={styles.cardTitle}>My Plots</Text>
+              <Text style={styles.cardDesc}>View all registered plots.</Text>
+              </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => navigation.navigate("Activity")}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.cardTitle}>Activity History</Text>
+              <Text style={styles.cardDesc}>
+                All submissions, updates, and verifications.
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    padding: 18,
-    backgroundColor: "#f8fafc",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingVertical: 20,
   },
   header: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginTop: 10,
-    color: "#1e3a8a",
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    alignItems: 'center',
   },
-  subHeader: {
-    fontSize: 15,
-    marginBottom: 15,
-    color: "#475569",
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    opacity: 0.9,
   },
   section: {
-    marginTop: 25,
+    paddingHorizontal: 20,
+    marginBottom: 25,
   },
   sectionTitle: {
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 12,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 14,
   },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: '#FFFFFF',
     padding: 18,
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 12,
-    elevation: 2, // Android shadow
-    shadowColor: "#000", // iOS shadow
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   cardTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1e40af",
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#5A7FE2',
+    marginBottom: 6,
   },
   cardDesc: {
-    fontSize: 14,
-    marginTop: 4,
-    color: "#475569",
+    fontSize: 15,
+    color: '#475569',
+    lineHeight: 20,
   },
 });
-
